@@ -9,6 +9,8 @@ jobs:
   - stage: lint
     install:
     - composer install
+    script:
+    - echo 'done'
   - stage: zip file
     env:
     - BUILD_DIR=build
