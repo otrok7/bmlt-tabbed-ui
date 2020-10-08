@@ -26,15 +26,19 @@ jobs:
       $BUILD_DIR/
     before_deploy:
     - mkdir -p $DIST_DIR_GITHUB && cp $BUILD_DIR/$ZIP_FILENAME $DIST_DIR_GITHUB/$GITHUB_RELEASE_FILENAME
-    deploy:
-    - provider: releases
-      file: "$DIST_DIR_GITHUB/$GITHUB_RELEASE_FILENAME"
-      skip_cleanup: true
-      name: "$TRAVIS_TAG"
 notifications:
   slack:
     secure: X99q0tRkx6b+igdA54zqOWPVeujLVohbGTdbYGXAtypFhzrZ/v12nNW6QMARvx7i9+LifRgcCzIdnw0DtVi4G5FCxbA9sdUKBpAWAxpzklhhNIDyIS8PMhARxylZb3aB9ie5UWeblwVt9PeOfwd4F8Fz25ZMME8UkDkRJS0kymXzmGj7Jm5k+C7TqMmxK9LkB42Iby9btC0MjLFtIHsaEHrflCvP1U8Gc0gfeazg2aRJPLLrACj5ObGpFLQ0xxBCfzTxS64AjWozO7zTYZu+6YKtUdsEMKHf5wh6MG1TyBb0OBC7CJNPf4ULbmmP+/Pjn2Gylva77/ElGSZJcOXKDaMGhFtmxtN9/ZhoSLZ+ntMccWkTdqePb14xs6uQifj2Qi4r9SiIf/aeED2DURdzDynJaH17QE+KxQ2hdH/L3xkPByqG0Px/O61Gpcwc8ng29tsns4tWMh+FGv3rShXWUUnyisfQhHlw+2aAHlqubDkt/4m3CluazwIH2lliz0HNUXfrs2rOaNT0vdKmYe1fKJDGsMvQG49xwIZKSKVUmRqNVzHCgz8v/ZfvVl15eq2Uzv+8vmo524YRLAzFyiReBMQRfrNts1fE/hwOEXLEwDrnMOYnzb9nMM9w9EHTbcpu638I4hRlhwzYLEtdZh9MkBBfz27jhdhrs9g2RynXhg4=
   email: false
-before_install:
-- openssl aes-256-cbc -K $encrypted_8ebb1ef83f64_key -iv $encrypted_8ebb1ef83f64_iv
-  -in github_deploy_key.enc -out github_deploy_key -d
+deploy:
+  provider: releases
+  api_key:
+    secure: Tb1VDp+n/gHyEGI1agMF2Jdqlb4CjztF0MyY/Js4pan6opgiJ6BPuUd62FT8ast8poJDnqD3Lxab3b91Bwzk0zajm+/U1m7Il9hRoJQwshsNhF9uNzIGyW7gDMNy6OIuxphOYAhL9HgcXwHLjLQvmkxWBKGoWpc1Fwz9z8NjFvUFVhE/suA+g7PMkQQK9cb5jGOODrEfUVnxsKWG0VrT9AVo1vdBVVmAbnEhB2l9Qy0v9U0H4OqKMeYNQ0YnfPj8pRAz2xtaGZlPUpWfEGc/TR/paiSzxRJ5u+UIPoQDFOerCGxzlK1OpRGmxWzzXnrfp31gKOliKc5Cavc7YivBb4vcTTD8nGU36UzAR5i5LEkm1AaHhYJP4aLXPNGhn9z/PCtWwSyv/d8dttqNaVKrVS/XQSd/YWCagD3AGjajmtqNfKs5LLKUV9uaJsp2b7iolp2JScH3d3Tp/ouKOvmh8S5w9I2ggfavpS/OiRgE5qF/d8nczAd2EmU1TACEKdZZVtrmh7EKPR9+soxQCvNAc7LxBQrWT/367vtqYRzRrCmX4lLf7LTMVI8pPNQoCk8UlZHK0gRlMJAEa2HaFo6zV1mmXaAqU80IFrkwmFvn/fm+DitfkIrgJiejDqdfha0tN9WG2wWZ1L9Yem3OtCeNF2mutkYR4RHN7ZqY7m1kgU4=
+    file: "$DIST_DIR_GITHUB/$GITHUB_RELEASE_FILENAME"
+    skip_cleanup: true
+    name: "$TRAVIS_TAG"
+      on: 
+        tags: true
+        condition: $TRAVIS_TAG != *beta*
+        repo: otrok7/bmlt-tabbed-ui
+        branch: main
