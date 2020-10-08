@@ -3,7 +3,7 @@
 Plugin Name: BMLT Tabbed UI 
 Description: Adds a jQuery Tabbed UI for BMLT.
 Author: Jack S Florida Region Modified for Berlin from Ron B
-Version: 6.0.14
+Version: 0.1
 */
 /* Disallow direct access to the plugin file */
 if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
