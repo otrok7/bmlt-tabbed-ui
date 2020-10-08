@@ -10,6 +10,7 @@ jobs:
     install:
     - composer install
     script:
+    - composer install
     - echo 'done'
   - stage: zip file
     env:
