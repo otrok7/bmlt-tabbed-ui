@@ -34,11 +34,7 @@ deploy:
   provider: releases
   api_key:
     secure: Tb1VDp+n/gHyEGI1agMF2Jdqlb4CjztF0MyY/Js4pan6opgiJ6BPuUd62FT8ast8poJDnqD3Lxab3b91Bwzk0zajm+/U1m7Il9hRoJQwshsNhF9uNzIGyW7gDMNy6OIuxphOYAhL9HgcXwHLjLQvmkxWBKGoWpc1Fwz9z8NjFvUFVhE/suA+g7PMkQQK9cb5jGOODrEfUVnxsKWG0VrT9AVo1vdBVVmAbnEhB2l9Qy0v9U0H4OqKMeYNQ0YnfPj8pRAz2xtaGZlPUpWfEGc/TR/paiSzxRJ5u+UIPoQDFOerCGxzlK1OpRGmxWzzXnrfp31gKOliKc5Cavc7YivBb4vcTTD8nGU36UzAR5i5LEkm1AaHhYJP4aLXPNGhn9z/PCtWwSyv/d8dttqNaVKrVS/XQSd/YWCagD3AGjajmtqNfKs5LLKUV9uaJsp2b7iolp2JScH3d3Tp/ouKOvmh8S5w9I2ggfavpS/OiRgE5qF/d8nczAd2EmU1TACEKdZZVtrmh7EKPR9+soxQCvNAc7LxBQrWT/367vtqYRzRrCmX4lLf7LTMVI8pPNQoCk8UlZHK0gRlMJAEa2HaFo6zV1mmXaAqU80IFrkwmFvn/fm+DitfkIrgJiejDqdfha0tN9WG2wWZ1L9Yem3OtCeNF2mutkYR4RHN7ZqY7m1kgU4=
-    file: "$DIST_DIR_GITHUB/$GITHUB_RELEASE_FILENAME"
-    skip_cleanup: true
-    name: "$TRAVIS_TAG"
-      on: 
-        tags: true
-        condition: $TRAVIS_TAG != *beta*
-        repo: otrok7/bmlt-tabbed-ui
-        branch: main
+  file: "$DIST_DIR_GITHUB/$GITHUB_RELEASE_FILENAME"
+  skip_cleanup: true
+  on: 
+    tags: true
