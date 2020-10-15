@@ -3,7 +3,7 @@
 Plugin Name: BMLT Tabbed UI 
 Description: Adds a jQuery Tabbed UI for BMLT.
 Author: Jack S Florida Region Modified for Berlin from Ron B
-Version: 0.1
+Version: 0.1 
 */
 /* Disallow direct access to the plugin file */
 if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
@@ -1620,9 +1620,9 @@ if (!class_exists("BMLTTabs")) {
 				</form>
 				<br/><br/>
 				<h2>Instructions</h2>
-				<p> Please contact <a href="mailto:webmaster@nameetinglist.org?Subject=BMLT%20Tabs" target="_top">webmaster@nameetinglist.org</a> with problems, questions or comments.</p>
+				<p> Please contact <a href="mailto:admin@narcotics-anonymous.de?Subject=BMLT%20Tabs" target="_top">webmaster@nameetinglist.org</a> with problems, questions or comments.</p>
 				<div id="accordion">
-					<h3 class="help-accordian"><strong>URL Parameters (New)</strong></h3>
+					<h3 class="help-accordian"><strong>URL Parameters</strong></h3>
 					<div>
 						<p>This feature will provide the capabity to re-use one page to generate a Tabbed UI for unlimited service bodies.</p>
 						<p>Example: A Region would have seperate pages for each Area with a Tabbed UI.</p>
@@ -1641,7 +1641,7 @@ if (!class_exists("BMLTTabs")) {
 						<p><a target="_blank" href="http://nameetinglist.org/bmlt-tabs/?root_server=http://naflorida.org/bmlt_server&service_body_parent=1&this_title=Florida%20Region%20Meetings&meeting_count=1&group_count=1">http://nameetinglist.org/bmlt-tabs/?<span style="color:red;">root_server</span>=http://naflorida.org/bmlt_server&<span style="color:red;">service_body_parent</span>=1&<span style="color:red;">this_title</span>=Florida%20Region%20Meetings&<span style="color:red;">meeting_count</span>=1&<span style="color:red;">group_count</span>=1</a></p>
 						<p><em>Title, meeting and group count have unique CSS classes that can be used for custom styling.</em></p>
 					</div>
-					<h3 class="help-accordian"><strong>Time Format (New)</strong></h3>
+					<h3 class="help-accordian"><strong>Time Format</strong></h3>
 
 					<div>
 
@@ -1698,12 +1698,19 @@ if (!class_exists("BMLTTabs")) {
 						<em><p>Hint: To find service body IDs enter the different root server into the "BMLT Root Server URL" box and save.</p>
 						<p>Remember to enter your current Root Server back into the "BMLT Root Server URL".</p></em>
 					</div>
-					<h3 class="help-accordian"><strong>View By City or Weekday</strong></h3>
+					<h3 class="help-accordian"><strong>View By City, Weekday, Language</strong></h3>
 					<div>
 						<p>With this parameter you can initially view meetings by City or Weekday.</p>
-						<p><strong>[bmlt_tabs view_by="city|weekday"]</strong></p>
+						<p><strong>[bmlt_tabs view_by="city|weekday|week|lang"]</strong></p>
 						<p>city = view meetings by City</p>
 						<p>weekday = view meetings by Weekdays (default)</p>
+						<p>week = view meetings by week of the month: especially for open meetings</p>
+						<p>lang = view meetings by language (other than German)</p>
+					</div>
+					<h3 class="help-accordian"><strong>Open Meetings by Week</strong></h3>
+					<div>
+						<p>To present a list of open meetings organized by week</p>
+						<p><strong>[bmlt_tabs view_by="week"]</strong></p>
 					</div>
 					<h3 class="help-accordian"><strong>Exclude City Button</strong></h3>
 					<div>
@@ -1781,6 +1788,42 @@ if (!class_exists("BMLTTabs")) {
 						<p><strong>[group_count service_body_parent="1,2,3"]</strong></p>
 						<p>Will return the number of Groups in one or more BMLT parent service bodies.</p>
 					</div>
+					<h3 class="help-accordian"><strong>Search for Format</strong></h3>
+					<div>
+						<p>Returns only meetings having the indicated format.  Example:</p>
+						<p><strong>[bmlt_tabs format_key="en"]</strong>returns only meetings in English</p>
+						<p>To search for multiple formats, the list may be comma seperated.  To search for meetings that do not have a certain format, use a minus sign (-) in front of the format.
+					</div>
+					<h3 class="help-accordian"><strong>Complex Search</strong></h3>
+					<div>
+						<p>Returns only meetings having the matching the query string. This may be quite complex.  Example:</p>
+						<p><strong>[bmlt_tabs query_sting="services=3&formats=-212"]</strong>returns meetings in Berlin excluding hybrid meetings</p>
+						<p>Use the <a href="https://www.narcotics-anonymous.de/bmlt/semantic/">Semantic Workshop</a>to determine the query string.
+					</div>
+					<h3 class="help-accordian"><strong>Meetinglist Language</strong></h3>
+					<div>
+						<p>Generates a meeting list with days and format descriptions in the indicated language. Example:</p>
+						<p><strong>[bmlt_tabs lang_enum="en"]</strong></p>
+						<p>Supported values: en, fa.  "de" is the default.</p>
+						<p>Note that this is independent of the language that might be used in the query string: it is possible to generate a list of a Farsi meetings, but the meeting list itself is in German.</p>
+					</div>
+					<h3 class="help-accordian"><strong>Online Meetings/ Face-to-Face Meetings </strong></h3>
+					<div>
+						<p>Include only online meetings or only face-to-face meetings. </p>
+						<p><strong>[bmlt_tabs online_only="1"]</strong></p>
+						<p>Value = 1: only online meetings.  Value = -1: only face-to-face meetings.</p>
+					</div>
+					<h3 class="help-accordian"><strong>Third Column Contents</strong></h3>
+					<div>
+						<p>The TabbedUI allows the admin to control the contents of the 3rd column in the meetings list</p>
+						<p>The default contents are set in the Backend, under "Einstellungen->BMLT Tabs", but may be overriden in the shortcode</p>		
+						<p>When setting "Column3 Contents", ff this is the meetings list of a single city, it is probably not helpful to see the city name over and over again, you might want just the neighborhood. In that case, neighborhoodsIn:city-name can be used...it will leave off the city name for all meetings in that city.
+						<p><strong>[bmlt_tabs field_name="public_transport" column3_contents="neighborhoodsIn:Berlin"]</strong></p>
+					</p>
+
+					</div>
+
+
 				</div>
 			</div>
 			<script>
