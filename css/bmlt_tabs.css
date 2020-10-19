@@ -302,6 +302,7 @@ span.bmlt_tabs_group_count {
 	border: 0;
 	table-layout: auto;
 	width: 100%;
+	hyphens: auto;
 }
 
 #bmlt-tabs #cities table.bmlt-table {
