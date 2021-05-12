@@ -184,7 +184,6 @@ span.bmlt_tabs_group_count {
 #bmlt-tabs .nav-tabs > li > a:hover {
 	color: #FFF;
 }
-
 #bmlt-tabs a#map-button {
 	margin-bottom: 4px;
 }
@@ -303,6 +302,9 @@ span.bmlt_tabs_group_count {
 	table-layout: auto;
 	width: 100%;
 	hyphens: auto;
+	overflow: hidden;
+    overflow-wrap: break-word ;
+    word-break: break-word;
 }
 
 #bmlt-tabs #cities table.bmlt-table {
@@ -337,7 +339,14 @@ span.bmlt_tabs_group_count {
 	#bmlt-tabs .meeting-closed {
 		text-decoration: line-through;
 	}
+	#bmlt-tabs .farsi {
+		float: right !important;
+	}
 @media (max-width: 39.9375em) {
+	#bmlt-tabs .farsi {
+		float: none !important;
+		text-align: right;
+	} 
 	/***
 	#bmlt-tabs .bmlt-header {
 		display: none !important;
@@ -371,7 +380,6 @@ span.bmlt_tabs_group_count {
 		color: #000;
 		border-radius: 0;
 	}
-
 	#bmlt-tabs .nav-tabs > li > a {
 		border-radius: 0 !important;
 		margin-right: 0 !important;
@@ -390,7 +398,6 @@ span.bmlt_tabs_group_count {
 		background: none;
 		border: none;
 	}
-
 	#bmlt-tabs .bmlt-column1 {
 		text-align: left;
 		width: 100%;

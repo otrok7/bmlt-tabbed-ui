@@ -3,7 +3,7 @@
 Plugin Name: BMLT Tabbed UI 
 Description: Adds a jQuery Tabbed UI for BMLT.
 Author: Jack S Florida Region Modified for Berlin from Ron B
-Version: 0.1 
+Version: 7 
 */
 /* Disallow direct access to the plugin file */
 if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
@@ -202,11 +202,11 @@ if (!class_exists("BMLTTabs")) {
 			$format_arr = json_decode($formats, true);
 			$format = array();
 			foreach ($format_arr as $f) {
-				if ($f['format_type_enum']=='LANG'
-				||  ($f['format_type_enum']=='Alert'&&$f['key_string']!='inst')
+				if ((isset($f['format_type_enum']) && $f['format_type_enum']=='LANG')
+				||  (isset($f['format_type_enum']) && ($f['format_type_enum']=='Alert'&&$f['key_string']!='inst'))
 				||  $f['world_id']=='M'
 				||  $f['world_id']=='W'
-				||  $f['key_string']=='dual'
+				||  $f['key_string']=='HY'
 				||  $f['world_id']=='GL') {
 					$f['online'] = true;
 				} else {
@@ -260,6 +260,7 @@ if (!class_exists("BMLTTabs")) {
 				"lang_enum" => 'de',
 				'online_only' => 0,
 				"exclude_zip_codes" => Null,
+				"cache_time" => -1,
 			    "field_name" => $this->options['field_name'],
 			    "column3_contents" => $this->options['column3_contents']
 			), $atts));
@@ -286,7 +287,7 @@ if (!class_exists("BMLTTabs")) {
 			}
 
 			// $has_tabs = ($view_by == 'city' ? '0' : $has_tabs);
-			if ($view_by != 'city' && $view_by != 'weekday' && $view_by!='week' && $view_by!='lang') {
+			if ($view_by != 'city' && $view_by != 'weekday' && $view_by!='week' && $view_by!='lang' && $view_by != 'special_interest') {
 				Return '<p>BMLT Tabs Error: view_by must = "city" or "weekday".</p>';
 			}
 			if ($include_city_button != '0' && $include_city_button != '1') {
@@ -326,11 +327,13 @@ if (!class_exists("BMLTTabs")) {
 					$services .= '&recursive=1&services[]=' . $key;
 				}
 			}
-			$transient_key = 'bmlt_tabs_' . md5($root_server . $services . $has_tabs . $has_groups . $has_cities . $has_meetings . $has_formats . $has_locations . $include_city_button . $include_weekday_button . $view_by . $dropdown_width . $has_zip_codes . $header . $format_key . $lang_enum.$query_string);
-			if (intval($this->options['cache_time']) > 0 && $_GET['nocache'] != Null) {
-				//$output = get_transient('_transient_'.$transient_key);
+			$cache_time = intval($cache_time);
+			if ($cache_time < 0) {
+				$cache_time = intval($this->options['cache_time']);
+			}
+			$transient_key = $this->transient_key();
+			if ($cache_time > 0 && !isset($_GET['nocache'])) {
 				$output = get_transient($transient_key);
-				//$output = gzuncompress($output);
 				if ($output != '') {
 					return $output;
 				}
@@ -369,7 +372,7 @@ if (!class_exists("BMLTTabs")) {
 					if ($link) {
 						if ($online_only > 0) 
 							$temp[] = $meeting;
-						elseif ($this->isDual($meeting))
+						elseif ($this->isHybrid($meeting))
 							$temp[] = $meeting;
 					} elseif (($online_only < 0)) {
 						$temp[] = $meeting;	
@@ -425,6 +428,7 @@ if (!class_exists("BMLTTabs")) {
 			asort($unique_format);
 			asort($unique_format_name_string);
 			$unique_langs 			   = $this->getLangFormats($unique_format, $formats);
+			$unique_special		   = $this->getSpecialFormats($unique_format, $formats);
 			array_push($unique_weekday, "1", "2", "3", "4", "5", "6", "7");
 			array_push($unique_week, "1", "2", "3", "4", "L");
 			$meetings_cities = $meetings_days = $meeting_header = $meetings_tab = $meetings_langs = "";
@@ -445,10 +449,11 @@ if (!class_exists("BMLTTabs")) {
 				    }
 					$unique_values = $unique_week;
 				} else {
-				    if ($view_by!='lang') {
-				        continue;
-				    }
-				    $unique_values = $unique_langs;
+				    if ($view_by=='lang') {
+						$unique_values = $unique_langs;
+					} else if ($view_by=='special_interest') {
+						$unique_values = $unique_special;
+					} else continue;
 				}
 				foreach ($unique_values as $this_value) {
 					$this_meeting = $meeting_header = $meeting_tab_header = "";							
@@ -533,7 +538,7 @@ if (!class_exists("BMLTTabs")) {
 			$output.= '</script>';
 			*/
 			if ($header == '1') {
-				$output .= '<div class="hide bmlt-header">';
+				$output .= '<div class="hide bmlt-header" '.$translate['style:align'].'>';
 				if ($view_by == 'weekday') {
 					if ($include_weekday_button == '1') {
 						$output .= '<div class="bmlt-button-container"><a id="day" class="btn btn-primary btn-sm">'.$translate['Weekday'].'</a></div>';
@@ -551,7 +556,7 @@ if (!class_exists("BMLTTabs")) {
 				}
 				if ($has_cities == '1') {
 					$output .= '<div class="bmlt-dropdown-container">';
-					$output .= '<select style="height: 26px; width:' . $dropdown_width . ';" data-placeholder="Cities" id="e2">';
+					$output .= '<select style="height: 26px; width:' . $dropdown_width . ';" data-placeholder="'.$translate['City'].'" id="e2">';
 					$output .= '<option></option>';
 					foreach ($unique_city as $city_value) {
 						$output .= "<option value=a-" . strtolower(preg_replace("/\W|_/", '-', $city_value)) . ">".$city_value."</option>";
@@ -591,7 +596,7 @@ if (!class_exists("BMLTTabs")) {
 				}
 				if ($has_formats == '1') {
 					$output .= '<div class="bmlt-dropdown-container">';
-					$output .= '<select style="width:' . $dropdown_width . ';" data-placeholder="Formats" id="e6">';
+					$output .= '<select style="width:' . $dropdown_width . ';" data-placeholder="'.$translate['Format'].'" id="e6">';
 					$output .= '<option></option>';
 					foreach ($unique_format_name_string as $format_value) {
 						$output .= "<option value=a-" . strtolower(preg_replace("/\W|_/", '-', $format_value)) . ">$format_value</option>";
@@ -610,7 +615,7 @@ if (!class_exists("BMLTTabs")) {
 				$selected = getdate()['wday'] + 1;
 				$output .= '<ul class="nav nav-tabs">';
 				for ($i=1; $i<=7; $i++) {
-					$output .= '<li><a href="#tab'.$i.'" data-toggle="tab">'.$translate['Weekdays'][$i].'</a></li>';
+					$output .= '<li '.$translate['float-dir'].'><a href="#tab'.$i.'" data-toggle="tab">'.$translate['Weekdays'][$i].'</a></li>';
 				}
 				$output .= '</ul>
                 <script type="text/javascript">var g_selected="'.$selected.'";</script>
@@ -676,7 +681,7 @@ if (!class_exists("BMLTTabs")) {
 				$meetings_cities = '';
 				// }
 			}
-			if ($view_by=='lang') {
+			if ($view_by=='lang' || $view_by=='special_interest') {
 				
 				$output .= '<div class="bmlt-page show" id="cities">';
 				
@@ -716,10 +721,13 @@ if (!class_exists("BMLTTabs")) {
 			$output = $this_title . $sub_title . $meeting_count. $group_count . $output;
 			$output = '<div class="bootstrap-bmlt"><div id="bmlt-tabs" class="bmlt-tabs hide">' . $output . '</div></div>';
 			//$output .= '<div id="divId" class="bmlt-tabs" title="Dialog Title"></div>';
-			if (intval($this->options['cache_time']) > 0 && $_GET['nocache'] != Null) {
-				set_transient($transient_key, $output, intval($this->options['cache_time']) * HOUR_IN_SECONDS);
+			if ($cache_time > 0 && !isset($_GET['nocache'])) {
+				set_transient($this->transient_key(), $output, intval($this->options['cache_time']) * HOUR_IN_SECONDS);
 			}
 			return $output;
+		}
+		function transient_key() {
+			return 'bmlt_tabs_' . md5($_SERVER['HTTP_HOST'].'//'.$_SERVER['REQUEST_URI']);
 		}
 		function toPersianNum($number)
 		{
@@ -744,10 +752,15 @@ if (!class_exists("BMLTTabs")) {
 		    return $this_meeting;
 		}
 		function getLink($value) {
-			return $this->getField('link',$value);
+			$ret = $this->getField('virtual_meeting_link',$value);
+			if (!$ret) {
+				$ret = $this->getField('phone_meeting_number',$value);
+				if ($ret) $ret = 'tel:'.$ret;
+			}
+			return $ret;
 		}
 		function getLinkInfo($value) {
-			return $this->getField('link_info',$value);
+			return $this->getField('virtual_meeting_additional_info',$value);
 		}
 		function getReservationList($value) {
 			return $this->getField('seat_reservation',$value);
@@ -774,7 +787,7 @@ if (!class_exists("BMLTTabs")) {
 			} elseif ($contents !== "blank") {
 		        $this_meeting .= $this->printCityAndSubsection($value);
 			}
-			if (!isSet($value['TC']) || !$value['TC'] ) {
+			if (!isSet($value['VG']) || !$value['VG'] ) {
 		    if ($fieldName!=null && $fieldName!='' && !$value['is_virtual']) {
 		       $public_trans_long = $value[$fieldName];
 		
@@ -789,7 +802,7 @@ if (!class_exists("BMLTTabs")) {
 				$this_meeting .= $this->virtualMtg($this->getLink($value),$translate,$phone,$this->getLinkInfo($value),$value['id_bigint']);
 			} else {
 				$this_meeting .= $this->getMap($value).'</br>';
-				if (isset($value['dual']) && $value['dual']) {
+				if (isset($value['HY']) && $value['HY']) {
 					$this_meeting .= $this->virtualMtg($this->getLink($value),$translate,$phone,$this->getLinkInfo($value),$value['id_bigint']);
 				}
 				
@@ -919,7 +932,7 @@ if (!class_exists("BMLTTabs")) {
 				$code = $parts[count($parts)-1];
 				$parts = explode('?pwd=',$code);
 				$code = $parts[0];
-				$map .= "<a href='tel:" . $phone . "' id='map-button' class='btn btn-primary btn-xs'>".$phone."<br/>Code: ".$code;
+				$map .= "<a href='tel:" . $phone . "' id='map-button' class='btn btn-primary btn-xs'>".$phone."<br/>".$translate['code'].": ".$code;
 				if ($info) {
 					$map .= "<br>".$info;
 				}
@@ -953,8 +966,21 @@ if (!class_exists("BMLTTabs")) {
 			}
 			return $ret;
 		}
-		function isDual($value) {
-			return in_array('dual',explode(',', $value['formats']));
+		function getSpecialFormats($used, $formats) {
+			$ret = array();
+			foreach ($used as $f) {
+				if (isSet($formats[$f])) {
+		            $t_format = $formats[$f];
+		            $type = $t_format['format_type_enum'];
+		            if ($type=='FC3') {
+						$ret[] = $f;
+					}
+				}
+			}
+			return $ret;
+		}
+		function isHybrid($value) {
+			return in_array('HY',explode(',', $value['formats']));
 		}
 		function getMeetingFormats(&$value, $formats, $translate) {
 		    $tvalue          = explode(',', $value['formats']);
@@ -965,17 +991,22 @@ if (!class_exists("BMLTTabs")) {
 			$covid = array();
 			unset($value['lang_enum']);
 			$value['VM'] = false;
-			$value['dual'] = false;
-			if ($this->getLink($value) && !in_array('dual',$tvalue)) {
+			$value['HY'] = false;
+			if ($this->getLink($value) && !in_array('HY',$tvalue)) {
 				$value['is_virtual'] = true;
+				if (!in_array('TC',$tvalue)) {
+					$value['VM'] = true;
+				}
 			} else {
 				$value['is_virtual'] = false;
 			}
 		    foreach ($tvalue as $t_value) {
 		        if (isSet($formats[$t_value])) {
 					$t_format = $formats[$t_value];
-		            $type = $t_format['format_type_enum'];
-					if ($value['is_virtual'] && ($t_value!='VM') &&
+		            if (isset($t_format['format_type_enum'])) 
+						$type = $t_format['format_type_enum'];
+					else $type = '';
+					if ($value['is_virtual'] && !$value['VM'] &&
 						!(($t_format['online']==true) || (substr($type, 0, 1)=='O'))) {
 							continue;
 						}
@@ -987,16 +1018,12 @@ if (!class_exists("BMLTTabs")) {
 		                } else {
 		                    $value['lang_enum'] = $t_value;
 						}
-					} elseif ($t_format['key_string']=='VM') {
-						$value['VM'] = true;
-					} elseif ($t_format['key_string']=='TC') {
-						$value['TC'] = true;
-						$value['alert'] = $t_format['description_string'];
+
 					} elseif ($t_format['key_string']=='VG') {
-						$value['TC'] = true;
+						$value['VG'] = true;
 						$value['alert'] = $t_format['description_string'];
-					} elseif ($t_format['key_string']=='dual') {
-						$value['dual'] = true;
+					} elseif ($t_format['key_string']=='HY') {
+						$value['HY'] = true;
 		            } elseif ($type=='ALERT') {
 						$value['alert'] = $t_format['description_string'];
 					} elseif ($type=='Covid') {
@@ -1184,7 +1211,7 @@ if (!class_exists("BMLTTabs")) {
 				$isaddress                  = False;
 			}
 			$additional_class = "";
-			if (isset($value['TC']) && $value['TC']) $additional_class = " meeting-closed";
+			if (isset($value['VG']) && $value['VG']) $additional_class = " meeting-closed";
 			$location .= "<div class='meeting-address".$additional_class."'>" . $address . '</div>';
 			if (isset($value['location_info'])) {
 				$location .= "<div class='location-information".$additional_class."'>" . preg_replace('/(https?):\/\/([A-Za-z0-9\._\-\/\?=&;%,]+)/i', '<a href="$1://$2" target="_blank">$1://$2</a>', $value['location_info']) . '</i/></div>';
@@ -1294,37 +1321,30 @@ if (!class_exists("BMLTTabs")) {
 			} else {
 				$the_query = $root_server . "/client_interface/json/index.php?switcher=GetSearchResults&formats[]=-47" . $services;
 			}
-			// print_r($the_query);return;
-			$transient_key = 'bmlt_tabs_mc_' . md5($the_query);
-			if (false === ($result = get_transient($transient_key)) || intval($this->options['cache_time']) == 0) {
-				$ch = curl_init();
-				curl_setopt($ch, CURLOPT_URL, $the_query);
-				curl_setopt($ch, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
-				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-				curl_setopt($ch, CURLOPT_MAXREDIRS, 3 );
-				curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate' );
-				$results  = curl_exec($ch);
-				$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-				curl_close($ch);
-				if ($httpcode != 200 && $httpcode != 302 && $httpcode != 304) {
-					return '[connect error]';
-				}
-				$result = json_decode($results, true);
-				if ($exclude_zip_codes !== Null) {
-					foreach ($result as $value) {
-						if ($value['location_postal_code_1']) {
-							if ( strpos($exclude_zip_codes, $value['location_postal_code_1']) !== false ) {
-								continue;
-							}
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $the_query);
+			curl_setopt($ch, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+			curl_setopt($ch, CURLOPT_MAXREDIRS, 3 );
+			curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate' );
+			$results  = curl_exec($ch);
+			$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+			if ($httpcode != 200 && $httpcode != 302 && $httpcode != 304) {
+				return '[connect error]';
+			}
+			$result = json_decode($results, true);
+			if ($exclude_zip_codes !== Null) {
+				foreach ($result as $value) {
+					if ($value['location_postal_code_1']) {
+						if ( strpos($exclude_zip_codes, $value['location_postal_code_1']) !== false ) {
+							continue;
 						}
-						$unique_group[] = $value['id_bigint'];
 					}
-					$result = array_unique($unique_group);
+					$unique_group[] = $value['id_bigint'];
 				}
-				if (intval($this->options['cache_time']) > 0) {
-					set_transient($transient_key, $result, intval($this->options['cache_time']) * HOUR_IN_SECONDS);
-				}
+				$result = array_unique($unique_group);
 			}
 			$results = count($result) - $subtract;
 			return $results;
@@ -1383,65 +1403,52 @@ if (!class_exists("BMLTTabs")) {
 			} else {
 				$the_query = "$root_server/client_interface/json/index.php?switcher=GetSearchResults&formats[]=-47" . $services;
 			}
-			$transient_key = 'bmlt_tabs_gc_' . md5($the_query);
-			if (false === ($result = get_transient($transient_key)) || intval($this->options['cache_time']) == 0) {
-				// It wasn't there, so regenerate the data and save the transient
-				$ch = curl_init();
-				curl_setopt($ch, CURLOPT_URL, $the_query);
-				curl_setopt($ch, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
-				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-				curl_setopt($ch, CURLOPT_MAXREDIRS, 3 );
-				curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate' );
-				$results  = curl_exec($ch);
-				$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-				curl_close($ch);
-				if ($httpcode != 200 && $httpcode != 302 && $httpcode != 304) {
-					return '[connect error]';
-				}
-				$result = json_decode($results, true);
-				$unique_group = array();
-				foreach ($result as $value) {
-					if ($exclude_zip_codes !== Null && $value['location_postal_code_1']) {
-						if ( strpos($exclude_zip_codes, $value['location_postal_code_1']) !== false ) {
-							continue;
-						}
-					}
-					$unique_group[] = $value['meeting_name'];
-				}
-				$result = array_unique($unique_group);
-				if (intval($this->options['cache_time']) > 0) {
-					set_transient($transient_key, $result, intval($this->options['cache_time']) * HOUR_IN_SECONDS);
-				}
+			$ch = curl_init();
+			curl_setopt($ch, CURLOPT_URL, $the_query);
+			curl_setopt($ch, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+			curl_setopt($ch, CURLOPT_MAXREDIRS, 3 );
+			curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate' );
+			$results  = curl_exec($ch);
+			$httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			curl_close($ch);
+			if ($httpcode != 200 && $httpcode != 302 && $httpcode != 304) {
+				return '[connect error]';
 			}
+			$result = json_decode($results, true);
+			$unique_group = array();
+			foreach ($result as $value) {
+				if ($exclude_zip_codes !== Null && $value['location_postal_code_1']) {
+					if ( strpos($exclude_zip_codes, $value['location_postal_code_1']) !== false ) {
+						continue;
+					}
+				}
+				$unique_group[] = $value['meeting_name'];
+			}
+			$result = array_unique($unique_group);
 			return count($result);
 		}
 		/**
 		 * @desc Adds the options sub-panel
 		 */
 		function get_areas($root_server, $source) {
-			$transient_key = 'bmlt_tabs_' . md5("$root_server/client_interface/json/?switcher=GetServiceBodies");
-			if (false === ($result = get_transient($transient_key)) || intval($this->options['cache_time']) == 0) {
-				$resource = curl_init();
-				curl_setopt($resource, CURLOPT_URL, "$root_server/client_interface/json/?switcher=GetServiceBodies");
-				curl_setopt($resource, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
-				curl_setopt($resource, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($resource, CURLOPT_TIMEOUT, 10);
-				curl_setopt($resource, CURLOPT_MAXREDIRS, 3 );
-				curl_setopt($resource, CURLOPT_ENCODING, 'gzip,deflate' );
-				$results  = curl_exec($resource);
-				$result   = json_decode($results, true);
-				$httpcode = curl_getinfo($resource, CURLINFO_HTTP_CODE);
-				$c_error  = curl_error($resource);
-				$c_errno  = curl_errno($resource);
-				curl_close($resource);
-				if ($results == False) {
-					echo '<div style="font-size: 20px;text-align:center;font-weight:normal;color:#F00;margin:0 auto;margin-top: 30px;"><p>Problem Connecting to BMLT Root Server</p><p>' . $root_server . '</p><p>Error: ' . $c_errno . ', ' . $c_error . '</p><p>Please try again later</p></div>';
-					return 0;
-				}
-				if (intval($this->options['cache_time']) > 0) {
-					set_transient($transient_key, $result, intval($this->options['cache_time']) * HOUR_IN_SECONDS);
-				}
+			$resource = curl_init();
+			curl_setopt($resource, CURLOPT_URL, "$root_server/client_interface/json/?switcher=GetServiceBodies");
+			curl_setopt($resource, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
+			curl_setopt($resource, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($resource, CURLOPT_TIMEOUT, 10);
+			curl_setopt($resource, CURLOPT_MAXREDIRS, 3 );
+			curl_setopt($resource, CURLOPT_ENCODING, 'gzip,deflate' );
+			$results  = curl_exec($resource);
+			$result   = json_decode($results, true);
+			$httpcode = curl_getinfo($resource, CURLINFO_HTTP_CODE);
+			$c_error  = curl_error($resource);
+			$c_errno  = curl_errno($resource);
+			curl_close($resource);
+			if ($results == False) {
+				echo '<div style="font-size: 20px;text-align:center;font-weight:normal;color:#F00;margin:0 auto;margin-top: 30px;"><p>Problem Connecting to BMLT Root Server</p><p>' . $root_server . '</p><p>Error: ' . $c_errno . ', ' . $c_error . '</p><p>Please try again later</p></div>';
+				return 0;
 			}
 			if ($source == 'dropdown') {
 				$unique_areas = array();
@@ -1880,24 +1887,11 @@ if (!class_exists("BMLTTabs")) {
 				update_option($this->optionsName, $theOptions);
 			}
 			$this->options = $theOptions;
-			$path_parts = pathinfo($this->options['root_server']);
-			if ( isSet($path_parts['extension']) ) {
-				$this->options['root_server'] = $path_parts['dirname'];
-			}
-			$parts = parse_url($this->options['root_server']);
-			$this->options['root_server'] = $parts['scheme'].'://'.$parts['host'].$parts['path'];
 		}
 		/**
 		 * Saves the admin options to the database.
 		 */
 		function save_admin_options() {
-			$path_parts = pathinfo($this->options['root_server']);
-			if ( $path_parts['extension'] ) {
-				$this->options['root_server'] = $path_parts['dirname'];
-			}
-			$parts = parse_url($this->options['root_server']);
-			$this->options['root_server'] = $parts['scheme'].'://'.$parts['host'].$parts['path'];
-			$this->options['root_server'] = untrailingslashit( $this->options['root_server'] );
 			update_option($this->optionsName, $this->options);
 			return;
 		}

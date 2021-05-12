@@ -5,6 +5,7 @@ $translate = array (
     'Format'                        =>  'Meeting Format',
     'Info'                          =>  'Meeting Details',
     'style:align'                   =>  '',
+    'float-dir'                     =>  '',
     'zoom'                          =>  'To Video Meeting!',
     'or'                            =>  'or',
     'City'                        => 'City',
@@ -12,6 +13,7 @@ $translate = array (
     'reservation'                 => 'Please reserve a seat unter the following link: ',
     'corona'                      => 'Due to the Corona Pandemic, this meeting takes place online.',
     'Normally'                    => 'Normally',
+    'code'                        => 'Code',
     'Covid-Responsibility'        => 'Due to the Corona pandemic, some restrictions apply.  The meeting is responsible that all relevant laws are followed.  In this meeting, the following apply:',
 
 );

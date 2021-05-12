@@ -16,7 +16,7 @@ console.log("in bmlt");
 	$('#tab' + g_selected).show();
 	}
 	$("#e2").select2({
-		placeholder: "Cities",
+		placeholder: "",
 		dropdownAutoWidth: true,
 		dropdownMaxWidth: '100px',
 		allowClear: false,
