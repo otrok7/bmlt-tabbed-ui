@@ -1,6 +1,5 @@
 
 jQuery(document).ready(function($) {
-console.log("in bmlt");
 	$('[data-toggle="popover"]').popover();
 	$('html').on('click', function (e) {
 		if ($(e.target).data('toggle') !== 'popover') { 
@@ -10,6 +9,7 @@ console.log("in bmlt");
 	$('.nav-tabs a').on('click', function (e) {
 		e.preventDefault();
 		$(this).tab('show');
+		console.log("hello 1");
 	});
 	if (typeof g_selected !== 'undefined') {
 	$('.nav-tabs a[href="#tab' + g_selected + '"]').tab('show');

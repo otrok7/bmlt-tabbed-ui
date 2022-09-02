@@ -12,6 +12,7 @@ if (basename($_SERVER['PHP_SELF']) == basename(__FILE__)) {
 
 use Jaybizzle\CrawlerDetect\CrawlerDetect;
 require_once plugin_dir_path(__FILE__).'vendor/autoload.php';
+require_once 'MeetingHelper.php';
 if (!class_exists("BMLTTabs")) {
 	class BMLTTabs {
 		var $optionsName = 'bmlt_tabs_options';
@@ -20,7 +21,6 @@ if (!class_exists("BMLTTabs")) {
 		var $crawlerDetected = null;
 		
 		function __construct() {
-			$crawlerD = new CrawlerDetect;
 			$this->crawlerDetected = (new CrawlerDetect)->isCrawler();
 			$this->getOptions();		
 			if (is_admin()) {
@@ -177,45 +177,6 @@ if (!class_exists("BMLTTabs")) {
 			}
 			return $result;
 		}
-		function getWeek($week,$translate) {
-		    if ($week != 'L') {
-		      return $week.". Woche im Monat";
-		    }
-		    return 'Letzte Woche im Monat';
-		}
-		function getday($day,$translate) {
-			return $translate['Weekdays'][$day];
-		}
-		function getTheFormats($root_server,$lang_enum) {
-		    if (isset($_POST["formats"]) && !empty($_POST["formats"])) {
-		        return $_POST["formats"];
-		    }
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, "$root_server/client_interface/json/?switcher=GetFormats&lang_enum=$lang_enum");
-			curl_setopt($ch, CURLOPT_USERAGENT, "cURL Mozilla/5.0 (Windows NT 5.1; rv:21.0) Gecko/20130401 Firefox/21.0");
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-			curl_setopt($ch, CURLOPT_MAXREDIRS, 3 );
-			curl_setopt($ch, CURLOPT_ENCODING, 'gzip,deflate' );
-			$formats = curl_exec($ch);
-			curl_close($ch);
-			$format_arr = json_decode($formats, true);
-			$format = array();
-			foreach ($format_arr as $f) {
-				if ((isset($f['format_type_enum']) && $f['format_type_enum']=='LANG')
-				||  (isset($f['format_type_enum']) && ($f['format_type_enum']=='Alert'&&$f['key_string']!='inst'))
-				||  $f['world_id']=='M'
-				||  $f['world_id']=='W'
-				||  $f['key_string']=='HY'
-				||  $f['world_id']=='GL') {
-					$f['online'] = true;
-				} else {
-					$f['online'] = false;
-				}
-				$format[$f['key_string']] = $f;
-			}
-			return $format;
-		}
 		function testRootServer($root_server) {
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_URL, "$root_server/client_interface/serverInfo.xml");
@@ -340,7 +301,7 @@ if (!class_exists("BMLTTabs")) {
 			}
 			ob_flush();
 			flush();
-			$formats = $this->getTheFormats($root_server,$lang_enum);
+			$formats = MeetingHelper::getTheFormats($root_server,$lang_enum);
 			$formats_online = array();
 			foreach ($formats as $k=>$f) {
 				if ($f['online']) {
@@ -368,11 +329,11 @@ if (!class_exists("BMLTTabs")) {
 			if ($online_only != 0) {
 				$temp = array();
 				foreach ($the_meetings as $meeting) {
-					$link = $this->getLink($meeting);
+					$link = MeetingHelper::getLink($meeting);
 					if ($link) {
 						if ($online_only > 0) 
 							$temp[] = $meeting;
-						elseif ($this->isHybrid($meeting))
+						elseif (MeetingHelper::isHybrid($meeting))
 							$temp[] = $meeting;
 					} elseif (($online_only < 0)) {
 						$temp[] = $meeting;	
@@ -504,9 +465,9 @@ if (!class_exists("BMLTTabs")) {
 							$meeting_tab_header = "<div id='tab" . $this_value . "' class='tab-pane'>";
 							$meeting_tab_header .= "<table class='table table-striped table-hover table-bordered tablesaw tablesaw-stack'>";
 							if ($x==1) {
-							    $meeting_header .= "<tr class='meeting-header'><td colspan='3' ".$translate['style:align'].">" . $this->getDay($this_value,$translate) . "</td></tr>";
+							    $meeting_header .= "<tr class='meeting-header'><td colspan='3' ".$translate['style:align'].">" . MeetingHelper::getDay($this_value,$translate) . "</td></tr>";
 							} else {
-							    $meeting_header .= "<tr class='meeting-header'><td colspan='3' ".$translate['style:align'].">" . $this->getWeek($this_value,$translate) . "</td></tr>";
+							    $meeting_header .= "<tr class='meeting-header'><td colspan='3' ".$translate['style:align'].">" . MeetingHelper::getWeek($this_value,$translate) . "</td></tr>";
 							}
 						}
 						$this_meeting .= '</table>';
@@ -643,11 +604,11 @@ if (!class_exists("BMLTTabs")) {
 			    }
 			    $output .= '
 				<ul class="nav nav-tabs">
-					<li><a href="#tab1" data-toggle="tab">'.$this->getWeek('1',$translate).'</a></li>
-                    <li><a href="#tab2" data-toggle="tab">'.$this->getWeek('2',$translate).'</a></li>
-                    <li><a href="#tab3" data-toggle="tab">'.$this->getWeek('3',$translate).'</a></li>
-                    <li><a href="#tab4" data-toggle="tab">'.$this->getWeek('4',$translate).'</a></li>
-                    <li><a href="#tabL" data-toggle="tab">'.$this->getWeek('L',$translate).'</a></li>
+					<li><a href="#tab1" data-toggle="tab">'.MeetingHelper::getWeek('1',$translate).'</a></li>
+                    <li><a href="#tab2" data-toggle="tab">'.MeetingHelper::getWeek('2',$translate).'</a></li>
+                    <li><a href="#tab3" data-toggle="tab">'.MeetingHelper::getWeek('3',$translate).'</a></li>
+                    <li><a href="#tab4" data-toggle="tab">'.MeetingHelper::getWeek('4',$translate).'</a></li>
+                    <li><a href="#tabL" data-toggle="tab">'.MeetingHelper::getWeek('L',$translate).'</a></li>
 				</ul>
                 <script type="text/javascript">var g_selected="'.$selected.'";</script>
 				</div>
@@ -751,30 +712,6 @@ if (!class_exists("BMLTTabs")) {
 		    $this_meeting .= '</b><br>';
 		    return $this_meeting;
 		}
-		function getLink($value) {
-			$ret = $this->getField('virtual_meeting_link',$value);
-			if (!$ret) {
-				$ret = $this->getField('phone_meeting_number',$value);
-				if ($ret) $ret = 'tel:'.$ret;
-			}
-			return $ret;
-		}
-		function getLinkInfo($value) {
-			return $this->getField('virtual_meeting_additional_info',$value);
-		}
-		function getReservationList($value) {
-			return $this->getField('seat_reservation',$value);
-		}
-		function getField($field,$value) {
-			$link = false;
-			if (isset($value[$field]) && !empty($value[$field])) {
-				$arr = explode("#@-@#", $value[$field]);
-				if (count($arr) > 1 and $arr[1] != '')
-					$link = $arr[1];
-				else $link = $arr[0];
-			}
-			return $link;
-		}
 		function calcColumn3($value,$translate,$contents,$fieldName,$phone) {
 		    $this_meeting = "<td class='bmlt-column3' ".$translate['style:align'].">";
 			if ($this->startsWith($contents,"neighborhoodsIn")) {
@@ -799,14 +736,14 @@ if (!class_exists("BMLTTabs")) {
 	           }
 	        }
 			if ($value['is_virtual']) {
-				$this_meeting .= $this->virtualMtg($this->getLink($value),$translate,$phone,$this->getLinkInfo($value),$value['id_bigint']);
+				$this_meeting .= MeetingHelper::virtualMtg($value,$translate,$phone,$this->crawlerDetected);
 			} else {
-				$this_meeting .= $this->getMap($value).'</br>';
+				$this_meeting .= MeetingHelper::getMap($value).'</br>';
 				if (isset($value['HY']) && $value['HY']) {
-					$this_meeting .= $this->virtualMtg($this->getLink($value),$translate,$phone,$this->getLinkInfo($value),$value['id_bigint']);
+					$this_meeting .= MeetingHelper::virtualMtg($value,$translate,$phone,$this->crawlerDetected);
 				}
 				
-				$reservation_link = $this->getReservationList($value);
+				$reservation_link = MeetingHelper::getReservationList($value);
 				if ($reservation_link)
 					$this_meeting .= "<br/><a target='_blank' id='bmlt-formats' class='btn btn-primary btn-xs' href=\"".$reservation_link.'" style=\'white-space:normal;word-break:break-word\' >'.$translate['reservation'].'</a>';
 
@@ -875,78 +812,7 @@ if (!class_exists("BMLTTabs")) {
 			}
 			return $this_output;
 		}
-		function virtualMtg($link,$translate,$phone,$info,$id) {
-			if ($this->crawlerDetected) return '';
-			if (substr($link, 0, 4) === "tel:") {
-				$parts = explode('/',$link);
-				if (count($parts)==1) {
-					return "<a href='" .$link. "' id='map-button' class='btn btn-primary btn-xs'>".$link."</a>";
-				}
-				$phone = $parts[0];
-				$message = "<a href='" .$phone. "' id='map-button' class='btn btn-primary btn-xs'>".$phone;
-				if (count($parts)>1) {
-					$code = $parts[count($parts)-1];
-					$parts = explode("?pin=",$code);
-					$code = $parts[0];
-					$message .= "<br/>Code: ".$code;
-					if (count($parts)>1) {
-						$message .= "<br/>PIN: ".$parts[1];
-					}
-				}
-				if ($info) {
-					$message .= "<br>".$info;
-				}
-				$message .= "</a>";
-				return $message;
-			}
-			if (substr($link, 0, 12) === "teamspeak://") {
-				$parts = explode('/',substr($link,12));
-				$server_port = $parts[0];
-				$server_port_arr = explode(':',$server_port);
-				$server = $server_port_arr[0];
-				$port = '';
-				if (count($server_port_arr) > 1) {
-					$port = $server_port_arr[1];
-				}
-				$ts_name = '"ts-name'.trim($id).'"';
-				$password = '';
-				if (count($parts) > 1) {
-					$password = $parts[1];
-				}
-				$message = '<b>TeamSpeak</b><br/><form target="_blank" action="ts3server://'.$server.'" method="get" style="padding:5px">';
-				$message .= '<label for='.$ts_name.'>Dein Name: </label>';
-				$message .= '<input id='.$ts_name.' name="nickname" maxlength="8" size="8" required />';
-				$message .= '<input type="hidden" name=port value="'.$port.'" />';
-				$message .= '<input type="hidden" name=password value="'.$password.'" />';
-				$message .= '<p style="margin:0;"><button style="background:#3689db; border: none; color: white; border-radius: 5px; padding: 5px 5px; margin-top:5px; margin-bottom:0;">Teamspeak beitreten</button></p></form>';
-				$message .= "<a target='_blank' href='http://www.na-onlinemeetings.de/anleitung' id='map-button' class='btn btn-primary btn-xs'>Anleitung</a>";
-				return $message;
-			}
-			if ($link=="http://na-telefonmeeting.de/") {
-				return "<a target='_blank' href='" . $link . "' id='map-button' class='btn btn-primary btn-xs'>Mehr Info</a>";
-			}
-			$map = "<a target='_blank' href='" . $link . "' id='map-button' class='btn btn-primary btn-xs'>".$translate['zoom']."</a>";
-			if (!empty($phone) && strpos($link,"zoom")>0) {
-				$map .= '<br/>'.$translate['or'].'<br/>';
-				$parts = explode('/',$link);
-				$code = $parts[count($parts)-1];
-				$parts = explode('?pwd=',$code);
-				$code = $parts[0];
-				$map .= "<a href='tel:" . $phone . "' id='map-button' class='btn btn-primary btn-xs'>".$phone."<br/>".$translate['code'].": ".$code;
-				if ($info) {
-					$map .= "<br>".$info;
-				}
-				$map .= "</a>";
-			}
-			return $map;
-		}
-		function getMap($value) {
-			$map = "<a target='_blank' href='https://maps.google.com/maps?q=" . $value['latitude'] . "," . $value['longitude'] . "' id='map-button' class='btn btn-primary btn-xs'><span class='glyphicon glyphicon-map-marker'></span>Google Map</a>"; 
-			return $map;
-		}
-		function getOSM($value) {
-			return "<a target='_blank' href='http://www.openstreetmap.org/?mlat=" . $value['latitude'] . "&mlon=" . $value['longitude'] . "&zoom=16' id='map-button' class='btn btn-primary btn-xs'><span class='glyphicon glyphicon-map-marker'></span>OpenStreet Map</a>"; 
-		}
+
 		function startsWith($haystack, $needle)
 		{
 		    $length = strlen($needle);
@@ -979,68 +845,8 @@ if (!class_exists("BMLTTabs")) {
 			}
 			return $ret;
 		}
-		function isHybrid($value) {
-			return in_array('HY',explode(',', $value['formats']));
-		}
 		function getMeetingFormats(&$value, $formats, $translate) {
-		    $tvalue          = explode(',', $value['formats']);
-		    $fc1 = array();
-		    $fc2 = array();
-		    $fc3 = array();
-			$o = array();
-			$covid = array();
-			unset($value['lang_enum']);
-			$value['VM'] = false;
-			$value['HY'] = false;
-			if ($this->getLink($value) && !in_array('HY',$tvalue)) {
-				$value['is_virtual'] = true;
-				if (!in_array('TC',$tvalue)) {
-					$value['VM'] = true;
-				}
-			} else {
-				$value['is_virtual'] = false;
-			}
-		    foreach ($tvalue as $t_value) {
-		        if (isSet($formats[$t_value])) {
-					$t_format = $formats[$t_value];
-		            if (isset($t_format['format_type_enum'])) 
-						$type = $t_format['format_type_enum'];
-					else $type = '';
-					if ($value['is_virtual'] && !$value['VM'] &&
-						!(($t_format['online']==true) || (substr($type, 0, 1)=='O'))) {
-							continue;
-						}
-		            if ($type=='LANG') {
-		                if (isSet($value['lang_enum'])) {
-		                    if ($value['lang_enum'] != $t_value) {
-		                        $value['lang_enum2'] = $t_value;
-		                    }
-		                } else {
-		                    $value['lang_enum'] = $t_value;
-						}
-
-					} elseif ($t_format['key_string']=='VG') {
-						$value['VG'] = true;
-						$value['alert'] = $t_format['description_string'];
-					} elseif ($t_format['key_string']=='HY') {
-						$value['HY'] = true;
-		            } elseif ($type=='ALERT') {
-						$value['alert'] = $t_format['description_string'];
-					} elseif ($type=='Covid') {
-						$covid[] = $t_format;
-		            } elseif ($type=='FC3') {
-		                $fc3[] = $t_format;
-		            } elseif ($type=='FC2') {
-		                $fc2[] = $t_format;
-		            } elseif (substr($type, 0, 1) == 'O') {
-		                $week = substr($type, 2, 1);
-		                $o[$week] = $t_format;
-		            } elseif (substr($type, 0, 3) == 'FC1') {
-		                $week = substr($type, 4, 1);
-		                $fc1[$week] = $t_format;
-		            }
-		        }
-			}
+			extract(MeetingHelper::seperateFormats($value, $formats));
 		    $weeks = array("1","2","3","4","5","L",'*');
 		    $value['formats'] = '';
 		    $meeting_formats = '<table class="bmlt_a_format table-bordered">';
@@ -1073,17 +879,8 @@ if (!class_exists("BMLTTabs")) {
 		          $value['formats'] .= '/';
 		      }
 		    }
-		    $text = '';
+		    $text = MeetingHelper::getField('format_comments',$value);
 		    $first = true;
-		    if (isSet($value['format_comments'])) {
-		        $text = trim($value['format_comments']);
-		        if ($text!='') {
-		            $format_comments = explode("#@-@#", $text);
-		            if (count($format_comments) > 1 and $format_comments[1] != '') {
-		                $text = $format_comments[1];
-		            }
-		        }
-		    }
 		    if (count($fc1) or $text!='') {
 		      $meeting_formats .= '<tr><td class="formats_header" colspan="2" '.$translate['style:align'].'>'.$translate['Format'].'</td></tr>';
 		      $special_weeks = false;
@@ -1121,13 +918,21 @@ if (!class_exists("BMLTTabs")) {
 			}
 		    return $meeting_formats;
 		}
+		function getDetailsLink($value) {
+			$id = $value['id_bigint'];
+			$name = $value['meeting_name'];
+			if (MeetingHelper::isVirtual($value) && !MeetingHelper::isHybrid($value) && !empty($this->options['virtual_details_page'])) {
+				return '<a href="'.$this->options['virtual_details_page'].'?meeting-id='.$id.'">'.$name.'</a>';
+			}
+			if (empty($this->options['details_page'])) return $name;
+			return '<a href="'.$this->options['details_page'].'?meeting-id='.$id.'">'.$name.'</a>';
+		}
 		function getLocation($value, $format_key, $formats, $translate) {
-			global $unique_areas;
 			$location = $address = '';
 			if (isset($value['meeting_name'])) {
 				//$location .= "<div class='meeting-name'>" . $value['meeting_name'] . "</div>";
-				$location .= "<div class='meeting-name'>" . $value['meeting_name'];
-				if (isset($value['lang_enum'])) {
+				$location .= "<div class='meeting-name'>" . $this->getDetailsLink($value);
+				if (isset($value['lang_enum']) && (empty($format_key) || $value['lang_enum']!=$format_key )) {
 				    $lang_enum = $value['lang_enum'];
 				    $lang_format = $formats[$lang_enum];
 					$location .= ' <img src="' . plugin_dir_url(__FILE__) . "lang/".$lang_enum.'.png" '
@@ -1145,88 +950,7 @@ if (!class_exists("BMLTTabs")) {
 			} else {
 				$value['meeting_name'] = '';
 			}
-			if ($value['VM'] || ($value['service_body_bigint'] == 12)) {
-				unset($value['location_street']);
-				unset($value['location_postal_code_1']);
-				unset($value['location_municipality']);
-				unset($value['location_province']);
-			} elseif ($value['is_virtual']) {
-				$location .= "<div class='location-text'>";
-				if (!empty($value['location_text'])) {
-					$location .= $translate['Normally'].' @'.$value['location_text'].'<br/>';
-				}
-				$location .= $translate['corona'];
-				unset($value['location_text']);
-				unset($value['location_street']);
-				unset($value['location_postal_code_1']);
-				unset($value['location_municipality']);
-				unset($value['location_province']);
-				unset($value['location_info']);
-			}
-			if (isset($value['location_text']) && $value['location_text'] != '') {
-				$location .= "<div class='location-text'>" . $value['location_text'] . '</div>';
-			} else {
-				$value['location_text'] = '';
-			}
-			$isaddress = True;
-			if (isset($value['location_street'])) {
-				$address .= $value['location_street'];
-			} else {
-				$value['location_street'] = '';
-				$isaddress                = False;
-			}
-			if (isset($value['location_postal_code_1'])) {
-			    if ($address != '' && $value['location_postal_code_1'] != '') {
-			        $address .= ', ' . $value['location_postal_code_1'];
-			    } else {
-			        $address .= $value['location_postal_code_1'];
-			    }
-			} else {
-			    $value['location_postal_code_1'] = '';
-			}
-			if (isset($value['location_municipality'])) {
-				if ($address != '' && $value['location_municipality'] != '') {
-				    if (isset($value['location_postal_code_1']) && $value['location_postal_code_1'] != '') {
-				       $address .= ' ' . $value['location_municipality'];
-				    } else {
-				        $address .= ', ' . $value['location_municipality'];
-				    }
-				} else {
-					$address .= $value['location_municipality'];
-				}
-			} else {
-				$value['location_municipality'] = '';
-				$isaddress                      = False;
-			}
-			if (isset($value['location_province'])) {
-				if ($address != '' && $value['location_province'] != '') {
-				    if ($value['location_municipality'] != $value['location_province']) {
-					   $address .= ', ' . $value['location_province'];
-				    }
-				} else {
-					$address .= $value['location_province'];
-				}
-			} else {
-				$value['location_province'] = '';
-				$isaddress                  = False;
-			}
-			$additional_class = "";
-			if (isset($value['VG']) && $value['VG']) $additional_class = " meeting-closed";
-			$location .= "<div class='meeting-address".$additional_class."'>" . $address . '</div>';
-			if (isset($value['location_info'])) {
-				$location .= "<div class='location-information".$additional_class."'>" . preg_replace('/(https?):\/\/([A-Za-z0-9\._\-\/\?=&;%,]+)/i', '<a href="$1://$2" target="_blank">$1://$2</a>', $value['location_info']) . '</i/></div>';
-				//	$location .= "<div class='location-information'>" .                 preg_replace('/(https?):\/\/([A-Za-z0-9\._\-\/\?=&;%,]+)/i', '<a href="$1://$2" target="_blank">$1://$2</a>', $value['location_info']) . '</i/></div>';
-			} else {
-				$value['location_info'] = '';
-			}
-			if ($format_key == 'BTW') {
-				$area = '';
-				$area = $unique_areas[$value['service_body_bigint']];
-				if ($area == '') {
-					$area = '<br/>(Florida Region)';
-				}
-				$location .= "<div class='meeting-area'>(" . $area . ")</div>";
-			}
+			$location .= MeetingHelper::calcLocation($value, $translate);
 			return "<td class='bmlt-column2' ".$translate['style:align'].">".$location."</td>";
 		}
 		function calcColumn1(&$value,$formats,$translate,$time_format,$has_day,$lang_enum) {
@@ -1255,7 +979,7 @@ if (!class_exists("BMLTTabs")) {
 			}
 		    $today = '';
 		    if ($has_day) {
-		        $today = "<div class='bmlt-day'>" . $this->getDay($value['weekday_tinyint'],$translate) . "</div>";
+		        $today = "<div class='bmlt-day'>" . MeetingHelper::getDay($value['weekday_tinyint'],$translate) . "</div>";
 		        $class = 'bmlt-time';
 		    } else {
 		        $class = 'bmlt-time-2';
@@ -1500,6 +1224,8 @@ if (!class_exists("BMLTTabs")) {
 				$this->options['field_name'] = $_POST['field_name'];
 				$this->options['column3_contents'] = $_POST['column3_contents'];
 				$this->options['phone']			= $_POST['phone'];
+				$this->options['details_page']	= $_POST['details_page'];
+				$this->options['virtual_details_page']	= $_POST['virtual_details_page'];
 				$this->save_admin_options();
 				set_transient('admin_notice', 'Please put down your weapon. You have 20 seconds to comply.');
 				echo '<div class="updated"><p>Success! Your changes were successfully saved!</p></div>';
@@ -1594,6 +1320,20 @@ if (!class_exists("BMLTTabs")) {
 							<li>
 								<label for="phone">Zoom Telefon: </label>
 								<input id="phone" type="text" maxlength="50" name="phone" value="<?php echo $this->options['phone']; ?>" />
+							</li>
+						</ul>
+					</div>
+					<div style="padding: 0 15px;" class="postbox">
+						<h3>Meeting Details Page</h3>
+						<p>Clicking on the meeting name brings you to a page dedicated to this meeting</p>
+						<ul>
+							<li>
+								<label for="details_page">URL for F2F Meetings: </label>
+								<input id="details_page" type="text" maxlength="100" size=40 name="details_page" value="<?php echo $this->options['details_page']; ?>" />
+							</li>
+							<li>
+								<label for="virtual_details_page">URL for Virtual Meetings: </label>
+								<input id="virtual_details_page" type="text" maxlength="100" size=40 name="virtual_details_page" value="<?php echo $this->options['virtual_details_page']; ?>" />
 							</li>
 						</ul>
 					</div>
@@ -1882,7 +1622,9 @@ if (!class_exists("BMLTTabs")) {
 				$theOptions = array(
 					'cache_time' => '3600',
 					'root_server' => '',
-					'service_body_1' => ''
+					'service_body_1' => '',
+					'details_page' => '',
+					'virtual_details_page' => ''
 				);
 				update_option($this->optionsName, $theOptions);
 			}
