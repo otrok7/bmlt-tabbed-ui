@@ -446,7 +446,7 @@ if (!class_exists("BMLTTabs")) {
 						}
 						$this_meeting .= '<tr>';
 						$this_meeting .= $this->calcColumn1($value,$formats,$translate,$time_format,$x!=1,$lang_enum);
-						$this_meeting .= $this->getLocation($value, $format_key, $formats, $translate);
+						$this_meeting .= $this->getLocation($value, $format_key, $formats, $translate, $lang_enum);
 						$this_meeting .= $this->calcColumn3($value,$translate,$column3_contents,$field_name,$phone);
 						$this_meeting .= "</tr>";
 					}
@@ -690,20 +690,6 @@ if (!class_exists("BMLTTabs")) {
 		function transient_key() {
 			return 'bmlt_tabs_' . md5($_SERVER['HTTP_HOST'].'//'.$_SERVER['REQUEST_URI']);
 		}
-		function toPersianNum($number)
-		{
-		    $number = str_replace("1","۱",$number);
-		    $number = str_replace("2","۲",$number);
-		    $number = str_replace("3","۳",$number);
-		    $number = str_replace("4","۴",$number);
-		    $number = str_replace("5","۵",$number);
-		    $number = str_replace("6","۶",$number);
-		    $number = str_replace("7","۷",$number);
-		    $number = str_replace("8","۸",$number);
-		    $number = str_replace("9","۹",$number);
-		    $number = str_replace("0","۰",$number);
-		    return $number;
-		}
 		function printCityAndSubsection($value) {
 		    $this_meeting = '<b>'.$value['location_municipality'];
 		    if (isSet($value['location_city_subsection']) and $value['location_city_subsection'] != '') {
@@ -791,7 +777,7 @@ if (!class_exists("BMLTTabs")) {
 					$this_meeting = '';
 					$this_meeting .= '<tr>';
 					$this_meeting .= $this->calcColumn1($value,$formats,$translate,$time_format,false,$lang_enum);
-					$this_meeting .= $this->getLocation($value, $format_key, $formats,$translate);
+					$this_meeting .= $this->getLocation($value, $format_key, $formats,$translate, $lang_enum);
 					$this_meeting .= $this->calcColumn3($value,$translate,$column3_contents,$field_name,$phone);
 					$this_meeting .= "</tr>";
 					
@@ -918,20 +904,25 @@ if (!class_exists("BMLTTabs")) {
 			}
 		    return $meeting_formats;
 		}
-		function getDetailsLink($value) {
+		function getDetailsLink($value,$lang_enum) {
 			$id = $value['id_bigint'];
 			$name = $value['meeting_name'];
-			if (MeetingHelper::isVirtual($value) && !MeetingHelper::isHybrid($value) && !empty($this->options['virtual_details_page'])) {
-				return '<a href="'.$this->options['virtual_details_page'].'?meeting-id='.$id.'">'.$name.'</a>';
+			if ($value['is_virtual'] && !MeetingHelper::isHybrid($value) && !empty($this->options['virtual_details_page'])) {
+				return '<a href="'.$this->addLang($this->options['virtual_details_page'],$lang_enum).'?meeting-id='.$id.'">'.$name.'</a>';
 			}
 			if (empty($this->options['details_page'])) return $name;
-			return '<a href="'.$this->options['details_page'].'?meeting-id='.$id.'">'.$name.'</a>';
+			return '<a href="'.$this->addLang($this->options['details_page'],$lang_enum).'?meeting-id='.$id.'">'.$name.'</a>';
 		}
-		function getLocation($value, $format_key, $formats, $translate) {
+		function addLang($url,$lang) {
+			if (empty($lang) || $lang=='de') return str_replace('{lang}/','',$url);
+			if (str_ends_with($url,'/')) $url = substr($url,0,strlen($url)-1);
+			return str_replace('{lang}',$lang,$url.'-'.$lang);
+		}
+		function getLocation($value, $format_key, $formats, $translate, $lang_enum) {
 			$location = $address = '';
 			if (isset($value['meeting_name'])) {
 				//$location .= "<div class='meeting-name'>" . $value['meeting_name'] . "</div>";
-				$location .= "<div class='meeting-name'>" . $this->getDetailsLink($value);
+				$location .= "<div class='meeting-name'>" . $this->getDetailsLink($value,$lang_enum);
 				if (isset($value['lang_enum']) && (empty($format_key) || $value['lang_enum']!=$format_key )) {
 				    $lang_enum = $value['lang_enum'];
 				    $lang_format = $formats[$lang_enum];
@@ -962,7 +953,7 @@ if (!class_exists("BMLTTabs")) {
 		    $value['start_time'] = $value['start_time'] . "&nbsp;-&nbsp;" . $end_time;
 		    $meeting_formats = $this->getMeetingFormats($value, $formats, $translate);
 		    if ($lang_enum == 'fa') {
-		        $value['start_time'] = $this->toPersianNum($value['start_time']);
+		        $value['start_time'] = MeetingHelper::toPersianNum($value['start_time']);
 		    }
 		    if (isset($value['comments'])) {
 		        $comment_class = "bmlt-comments";

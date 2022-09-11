@@ -41,6 +41,8 @@ if (!class_exists("BMLTMeetingDetails")) {
 		function enqueue_frontend_files() {
 			if ( $this->has_shortcode() ) {
 				$this->query_db_and_cache_in_session();
+				wp_enqueue_style("bmlt-tabs-bootstrap", plugin_dir_url(__FILE__) . "css/bootstrap.min.css", false, filemtime( plugin_dir_path(__FILE__) . "css/bootstrap.min.css"), false);
+				wp_enqueue_style("bmlt-tabs", plugin_dir_url(__FILE__) . "css/bmlt_tabs.css", false, filemtime( plugin_dir_path(__FILE__) . "css/bmlt_tabs.css"), false);
 			}
 		}
 		function getTheMeeting($root_server, $id) {
@@ -84,12 +86,26 @@ if (!class_exists("BMLTMeetingDetails")) {
 			$_SESSION['bmlt_details'] = $value;
 			$_SESSION['bmlt_area'] = $this->get_area($root_server, $value);
 
+			add_filter( 'pll_the_language_link', array($this,'url_query_string') );
+
 		}
-		function bmlt_details($atts, $content = null) {
+		function url_query_string( $url ) {
+			if ( ! empty( $_SERVER['QUERY_STRING'] ) ) {
+				return $url . '?' . $_SERVER['QUERY_STRING'];
+			}
+			return $url;
+		}
+		function bmlt_details($atts, $content) {
+			$ret = $this->bmlt_field($atts);
+			if (empty($ret)) return '';
+			$prefix = htmlspecialchars_decode($atts['prefix'],ENT_QUOTES);
+			return $prefix.$ret;
+		}
+		function bmlt_field($atts, $content = null) {
 			extract(shortcode_atts(array(
 				"time_format" => 'G:i',
 				"lang_enum" => 'de',
-				"field" => 'name'
+				"field" => 'name',
 			), $atts));
 			$formats = $_SESSION['bmlt_formats'];
 			if ($lang_enum != 'de') $formats = MeetingHelper::getTheFormats($root_server,$lang_enum);
@@ -120,7 +136,8 @@ if (!class_exists("BMLTMeetingDetails")) {
 					$phone 					= '';
 					if (isset($this->options['phone']))
 						$phone				= $this->options['phone'];
-					return (MeetingHelper::isHybrid($value) || MeetingHelper::isVirtual($value)) ? MeetingHelper::virtualMtg($value,$translate,$phone) : '';
+					return (MeetingHelper::isHybrid($value) || MeetingHelper::isVirtual($value))
+						? '<div class="bootstrap-bmlt">'.MeetingHelper::virtualMtg($value,$translate,$phone).'</div>' : '';
 				case 'formats':
 					return $this->listFormats($value, $formats, $translate);
 				case 'languages':
@@ -130,6 +147,7 @@ if (!class_exists("BMLTMeetingDetails")) {
 					if (!isset($value['lang_enum2'])) return $ret;
 					return $ret.'<br/>'.htmlspecialchars($formats[$value['lang_enum2']]['description_string'], ENT_QUOTES);
 				default:
+					if (isset($value[$field])) return $value[$field];
 					return '';
 				}
 		}
@@ -137,14 +155,14 @@ if (!class_exists("BMLTMeetingDetails")) {
 			extract(MeetingHelper::seperateFormats($value, $formats));
 		    $weeks = array("1","2","3","4","5","L",'*');
 			if (count($covid)>0) {
-				$ret .= '<h3 class="formats_header" '.$translate['style:align'].' style="white-space:normal;word-break:break-word">'.$translate['Covid-Responsibility'].'</h3><ul>';
+				$ret .= '<br/><h4 class="formats_header" id="headline_second_level"'.$translate['style:align'].' style="white-space:normal;word-break:break-word">'.$translate['Covid-Responsibility'].'</h4><ul>';
 				foreach ($covid as $f) {
 					$ret .= '<li class="formats_description">'.htmlspecialchars($f['description_string'], ENT_QUOTES).'</li>';
 				}
 				$ret .= '</ul>';
 			}
 			if (count($fc2)+count($fc3)+count($o) > 0) {
-				$ret .= '<h3 class="formats_header" '.$translate['style:align'].'>'.$translate['Info'].'</h3><ul>';
+				$ret .= '<br/><h4 class="formats_header" id="headline_second_level"'.$translate['style:align'].'>'.$translate['Info'].'</h4><ul>';
 				foreach ($fc2 as $f) {
 					$ret .= '<li class="formats_description">'.htmlspecialchars($f['description_string'], ENT_QUOTES).'</li>';
 				}
@@ -162,7 +180,7 @@ if (!class_exists("BMLTMeetingDetails")) {
 			}
 			$text = MeetingHelper::getField('format_comments',$value);
 			if (count($fc1) or $text!='') {
-				$ret .= '<h3 class="formats_header" '.$translate['style:align'].'>'.$translate['Format'].'</h3><ul>';
+				$ret .= '<br/><h4 class="formats_header" id="headline_second_level"'.$translate['style:align'].'>'.$translate['Format'].'</h4><ul>';
 				$special_weeks = false;
 				foreach ($weeks as $week) {
 					if (isSet($fc1[$week])) {
