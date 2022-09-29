@@ -722,11 +722,11 @@ if (!class_exists("BMLTTabs")) {
 	           }
 	        }
 			if ($value['is_virtual']) {
-				$this_meeting .= MeetingHelper::virtualMtg($value,$translate,$phone,$this->crawlerDetected);
+				$this_meeting .= MeetingHelper::virtualMtg($value,$translate,$phone,$this->crawlerDetected,' btn-xs');
 			} else {
 				$this_meeting .= MeetingHelper::getMap($value).'</br>';
 				if (isset($value['HY']) && $value['HY']) {
-					$this_meeting .= MeetingHelper::virtualMtg($value,$translate,$phone,$this->crawlerDetected);
+					$this_meeting .= MeetingHelper::virtualMtg($value,$translate,$phone,$this->crawlerDetected,' btn-xs');
 				}
 				
 				$reservation_link = MeetingHelper::getReservationList($value);
@@ -911,6 +911,7 @@ if (!class_exists("BMLTTabs")) {
 				return '<a href="'.$this->addLang($this->options['virtual_details_page'],$lang_enum).'?meeting-id='.$id.'">'.$name.'</a>';
 			}
 			if (empty($this->options['details_page'])) return $name;
+			if (isset($value['VG']) && $value['VG']) return $name;
 			return '<a href="'.$this->addLang($this->options['details_page'],$lang_enum).'?meeting-id='.$id.'">'.$name.'</a>';
 		}
 		function addLang($url,$lang) {

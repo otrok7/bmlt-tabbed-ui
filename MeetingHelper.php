@@ -126,12 +126,12 @@
 		}
 		public static function calcLocation(&$value, $translate) {
 			$location = '';
-			if ($value['VM'] || ($value['service_body_bigint'] == 12)) {
+			if ((isset($value['VM'])&&$value['VM']) || ($value['service_body_bigint'] == 12)) {
 				unset($value['location_street']);
 				unset($value['location_postal_code_1']);
 				unset($value['location_municipality']);
 				unset($value['location_province']);
-			} elseif ($value['is_virtual']) {
+			} elseif (isset($value['is_virtual'])&&$value['is_virtual']) {
 				$location .= "<div class='location-text'>";
 				if (!empty($value['location_text'])) {
 					$location .= $translate['Normally'].' @'.$value['location_text'].'<br/>';
@@ -156,7 +156,7 @@
 				$value['location_street'] = '';
 			}
 			if (isset($value['location_postal_code_1'])) {
-			    if ($address != '' && $value['location_postal_code_1'] != '') {
+			    if ($address != '' && !empty($value['location_postal_code_1'])) {
 			        $address .= ', ' . $value['location_postal_code_1'];
 			    } else {
 			        $address .= $value['location_postal_code_1'];
@@ -199,7 +199,7 @@
 			}
 			return $location;
 		}
-		public static function virtualMtg($value,$translate,$phone,$crawler=false) {
+		public static function virtualMtg($value,$translate,$phone,$crawler=false,$css_class=' btn-xs') {
 			if ($crawler) return '';
 			$link = MeetingHelper::getLink($value);
 			$info = MeetingHelper::getLinkInfo($value);
@@ -207,10 +207,10 @@
 			if (substr($link, 0, 4) === "tel:") {
 				$parts = explode('/',$link);
 				if (count($parts)==1) {
-					return "<a href='" .$link. "' id='map-button' class='btn btn-primary btn-xs'>".$link."</a>";
+					return "<a href='" .$link. "' id='map-button' class='btn btn-primary$css_class'>".$link."</a>";
 				}
 				$phone = $parts[0];
-				$message = "<a href='" .$phone. "' id='map-button' class='btn btn-primary btn-xs'>".$phone;
+				$message = "<a href='" .$phone. "' id='map-button' class='btn btn-primary$css_class'>".$phone;
 				if (count($parts)>1) {
 					$code = $parts[count($parts)-1];
 					$parts = explode("?pin=",$code);
@@ -246,20 +246,20 @@
 				$message .= '<input type="hidden" name=port value="'.$port.'" />';
 				$message .= '<input type="hidden" name=password value="'.$password.'" />';
 				$message .= '<p style="margin:0;"><button style="background:#3689db; border: none; color: white; border-radius: 5px; padding: 5px 5px; margin-top:5px; margin-bottom:0;">Teamspeak beitreten</button></p></form>';
-				$message .= "<a target='_blank' href='http://www.na-onlinemeetings.de/anleitung' id='map-button' class='btn btn-primary btn-xs'>Anleitung</a>";
+				$message .= "<a target='_blank' href='http://www.na-onlinemeetings.de/anleitung' id='map-button' class='btn btn-primary$css_class'>Anleitung</a>";
 				return $message;
 			}
 			if ($link=="http://na-telefonmeeting.de/") {
-				return "<a target='_blank' href='" . $link . "' id='map-button' class='btn btn-primary btn-xs'>Mehr Info</a>";
+				return "<a target='_blank' href='" . $link . "' id='map-button' class='btn btn-primary$css_class'>Mehr Info</a>";
 			}
-			$map = "<a target='_blank' href='" . $link . "' id='map-button' class='btn btn-primary btn-xs'>".$translate['zoom']."</a>";
+			$map = "<a target='_blank' href='" . $link . "' id='map-button' class='btn btn-primary$css_class'>".$translate['zoom']."</a>";
 			if (!empty($phone) && strpos($link,"zoom")>0) {
 				$map .= '<br/>'.$translate['or'].'<br/>';
 				$parts = explode('/',$link);
 				$code = $parts[count($parts)-1];
 				$parts = explode('?pwd=',$code);
 				$code = $parts[0];
-				$map .= "<a href='tel:" . $phone . "' id='map-button' class='btn btn-primary btn-xs'>".$phone."<br/>".$translate['code'].": ".$code;
+				$map .= "<a href='tel:" . $phone . "' id='map-button' class='btn btn-primary$css_class'>".$phone."<br/>".$translate['code'].": ".$code;
 				if ($info) {
 					$map .= "<br>".$info;
 				}
@@ -267,12 +267,12 @@
 			}
 			return $map;
 		}
-		public static function getMap($value) {
-			$map = "<a target='_blank' href='https://maps.google.com/maps?q=" . $value['latitude'] . "," . $value['longitude'] . "' id='map-button' class='btn btn-primary btn-xs'><span class='glyphicon glyphicon-map-marker'></span>Google Map</a>"; 
+		public static function getMap($value, $css_class=' btn-xs') {
+			$map = "<a target='_blank' href='https://maps.google.com/maps?q=" . $value['latitude'] . "," . $value['longitude'] . "' id='map-button' class='btn btn-primary$css_class'><span class='glyphicon glyphicon-map-marker'></span>Google Map</a>"; 
 			return $map;
 		}
-		public static function getOSM($value) {
-			return "<a target='_blank' href='http://www.openstreetmap.org/?mlat=" . $value['latitude'] . "&mlon=" . $value['longitude'] . "&zoom=16' id='map-button' class='btn btn-primary btn-xs'><span class='glyphicon glyphicon-map-marker'></span>OpenStreet Map</a>"; 
+		public static function getOSM($value, $css_class=' btn-xs') {
+			return "<a target='_blank' href='http://www.openstreetmap.org/?mlat=" . $value['latitude'] . "&mlon=" . $value['longitude'] . "&zoom=16' id='map-button' class='btn btn-primary$css_class'><span class='glyphicon glyphicon-map-marker'></span>OpenStreet Map</a>"; 
 		}
 		public static function getLink($value) {
 			$ret = MeetingHelper::getField('virtual_meeting_link',$value);

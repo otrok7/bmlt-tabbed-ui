@@ -28,18 +28,14 @@ if (!class_exists("BMLTMeetingDetails")) {
 				));
 			}
 		}
-		function has_shortcode() {
-			$post_to_check = get_post(get_the_ID());
-			if (stripos($post_to_check->post_content, '[bmlt_details') !== false) {
-				return true;
-			}
-			return false;
+		function has_meeting_id_query() {
+			return isset($_GET['meeting-id']);
 		}
 		/**
 		 * @desc Adds JS/CSS to the header
 		 */
 		function enqueue_frontend_files() {
-			if ( $this->has_shortcode() ) {
+			if ( $this->has_meeting_id_query() ) {
 				$this->query_db_and_cache_in_session();
 				wp_enqueue_style("bmlt-tabs-bootstrap", plugin_dir_url(__FILE__) . "css/bootstrap.min.css", false, filemtime( plugin_dir_path(__FILE__) . "css/bootstrap.min.css"), false);
 				wp_enqueue_style("bmlt-tabs", plugin_dir_url(__FILE__) . "css/bmlt_tabs.css", false, filemtime( plugin_dir_path(__FILE__) . "css/bmlt_tabs.css"), false);
@@ -81,6 +77,7 @@ if (!class_exists("BMLTMeetingDetails")) {
 				echo '</div>';
 			}
 			$_SESSION['bmlt_formats'] = MeetingHelper::getTheFormats($root_server,'de');
+			$_SESSION['bmlt_format_lang'] = 'de';
 			$id = $_GET['meeting-id'];
 			$value = $this->getTheMeeting($root_server, $id);
 			$_SESSION['bmlt_details'] = $value;
@@ -98,22 +95,26 @@ if (!class_exists("BMLTMeetingDetails")) {
 		function bmlt_details($atts, $content) {
 			$ret = $this->bmlt_field($atts);
 			if (empty($ret)) return '';
-			$prefix = htmlspecialchars_decode($atts['prefix'],ENT_QUOTES);
+			$prefix = empty($atts['prefix'])?'':htmlspecialchars_decode($atts['prefix'],ENT_QUOTES);
 			return $prefix.$ret;
 		}
 		function bmlt_field($atts, $content = null) {
 			extract(shortcode_atts(array(
 				"time_format" => 'G:i',
-				"lang_enum" => 'de',
+				"lang_enum" => '',
 				"field" => 'name',
 			), $atts));
-			$formats = $_SESSION['bmlt_formats'];
-			if ($lang_enum != 'de') $formats = MeetingHelper::getTheFormats($root_server,$lang_enum);
+			if (!empty($lang_enum) && $lang_enum != $_SESSION['bmlt_format_lang']) {
+				$_SESSION['bmlt_formats'] = MeetingHelper::getTheFormats($this->options['root_server'],$lang_enum);
+				$_SESSION['bmlt_format_lang'] = $lang_enum;
+			}	
+			$formats = $_SESSION['bmlt_formats'];		
 			$value = $_SESSION['bmlt_details'];
 			if ($value == null) {
 				return "not found";
 			}
 			$area = $_SESSION['bmlt_area'];
+			if (empty($lang_enum)) $lang_enum = 'de';
 			include(dirname(__FILE__)."/lang/translate_".$lang_enum.".php");
 			switch($field) {
 				case 'name':
@@ -137,7 +138,7 @@ if (!class_exists("BMLTMeetingDetails")) {
 					if (isset($this->options['phone']))
 						$phone				= $this->options['phone'];
 					return (MeetingHelper::isHybrid($value) || MeetingHelper::isVirtual($value))
-						? '<div class="bootstrap-bmlt">'.MeetingHelper::virtualMtg($value,$translate,$phone).'</div>' : '';
+						? '<div class="bootstrap-bmlt">'.MeetingHelper::virtualMtg($value,$translate,$phone,false,'').'</div>' : '';
 				case 'formats':
 					return $this->listFormats($value, $formats, $translate);
 				case 'languages':
@@ -154,26 +155,27 @@ if (!class_exists("BMLTMeetingDetails")) {
 		function listFormats($value, $formats, $translate) {
 			extract(MeetingHelper::seperateFormats($value, $formats));
 		    $weeks = array("1","2","3","4","5","L",'*');
+			$ret = '';
 			if (count($covid)>0) {
 				$ret .= '<br/><h4 class="formats_header" id="headline_second_level"'.$translate['style:align'].' style="white-space:normal;word-break:break-word">'.$translate['Covid-Responsibility'].'</h4><ul>';
 				foreach ($covid as $f) {
-					$ret .= '<li class="formats_description">'.htmlspecialchars($f['description_string'], ENT_QUOTES).'</li>';
+					$ret .= '<li class="formats_description">'.$f['description_string'].'</li>';
 				}
 				$ret .= '</ul>';
 			}
 			if (count($fc2)+count($fc3)+count($o) > 0) {
 				$ret .= '<br/><h4 class="formats_header" id="headline_second_level"'.$translate['style:align'].'>'.$translate['Info'].'</h4><ul>';
 				foreach ($fc2 as $f) {
-					$ret .= '<li class="formats_description">'.htmlspecialchars($f['description_string'], ENT_QUOTES).'</li>';
+					$ret .= '<li class="formats_description">'.$f['description_string'].'</li>';
 				}
 				foreach ($fc3 as $f) {
-					$ret .= '<li class="formats_description">'.htmlspecialchars($f['description_string'], ENT_QUOTES).'</li>';
+					$ret .= '<li class="formats_description">'.$f['description_string'].'</li>';
 				}
 				$special_weeks = false;
 				foreach ($weeks as $week) {
 					if (isSet($o[$week])) {
 						$f = $o[$week];
-						$ret .= '<li class="formats_description">'.htmlspecialchars($f['description_string'], ENT_QUOTES).'</li>';
+						$ret .= '<li class="formats_description">'.$f['description_string'].'</li>';
 					}
 				}
 				$ret .= '</ul>';
@@ -185,14 +187,14 @@ if (!class_exists("BMLTMeetingDetails")) {
 				foreach ($weeks as $week) {
 					if (isSet($fc1[$week])) {
 						$f = $fc1[$week];
-						$descr = (($special_weeks and $week=='*')?htmlspecialchars($translate['week*']):'')
+						$descr = (($special_weeks and $week=='*')?$translate['week*']:'')
 								 .$f['description_string'];
-						$ret .= '<li class="formats_description">'.htmlspecialchars($descr, ENT_QUOTES).'</li>';
+						$ret .= '<li class="formats_description">'.$descr.'</li>';
 						$special_weeks = true;
 					}
 				}
 				if ($text!='') {
-					$ret .= '<li class="formats_description">'.htmlspecialchars($text, ENT_QUOTES).'</li>';
+					$ret .= '<li class="formats_description">'.$text.'</li>';
 				}
 				$ret .= '</ul>';
 			}
